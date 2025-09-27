@@ -44,6 +44,29 @@ create policy "Public add messages" on public.messages for insert to anon with c
 
 > ⚠️ Only use the anon key in the browser. Keep the service-role key private.
 
+3. Create a `dashboard_state` table that stores the shared dataset seen by every visitor:
+
+```sql
+create table if not exists public.dashboard_state (
+  id text primary key,
+  payload jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.dashboard_state enable row level security;
+
+create policy "Dashboard read" on public.dashboard_state
+  for select to anon using (id = 'main');
+
+create policy "Dashboard insert" on public.dashboard_state
+  for insert to anon with check (id = 'main');
+
+create policy "Dashboard update" on public.dashboard_state
+  for update to anon using (id = 'main') with check (id = 'main');
+```
+
+> The app uses a single row with `id = 'main'` to persist the latest clients, products, orders, expenses, and logs. Make sure the table exists before deploying so that everyone shares the same data.
+
 ## Local development
 
 ```bash

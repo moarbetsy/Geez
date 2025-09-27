@@ -15,6 +15,8 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import type { Page, Order, Client, Product, OrderItem, Expense, LogEntry, Metric, DashboardStat } from './types';
 import { initialClients, initialProducts, initialOrders, initialExpenses, initialLogs } from './lib/data';
 import { calculateCost, exportToCsv } from './lib/utils';
+import { fetchDashboardState, upsertDashboardState } from './lib/dashboardState';
+import { isSupabaseConfigured } from './lib/supabaseClient';
 import { CreateOrderModal, CreateClientModal, CreateProductModal, AddStockModal, EditClientModal, EditOrderModal, EditProductModal, ClientOrdersModal, EditExpenseModal, LogDetailsModal, SessionTimeoutModal, ConfirmationModal, CreateExpenseModal, CalculatorModal, AlertModal } from './components/modals';
 import { NavItem, MobileNavItem, GlassCard, ActionCard } from './components/common';
 import { MessagesPage } from './components/MessagesPage';
@@ -1120,11 +1122,106 @@ export const App: React.FC = () => {
   const [isPrivateMode, setIsPrivateMode] = useLocalStorage('isPrivateMode', false);
 
   // Data state
-  const [clients, setClients] = useLocalStorage<Client[]>('clients', initialClients);
-  const [products, setProducts] = useLocalStorage<Product[]>('products', initialProducts);
-  const [orders, setOrders] = useLocalStorage<Order[]>('orders', initialOrders);
-  const [expenses, setExpenses] = useLocalStorage<Expense[]>('expenses', initialExpenses);
-  const [logs, setLogs] = useLocalStorage<LogEntry[]>('logs', initialLogs);
+  const [clients, setClients] = useState<Client[]>(initialClients);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [logs, setLogs] = useState<LogEntry[]>(initialLogs);
+  const [isDataLoaded, setIsDataLoaded] = useState(!isSupabaseConfigured);
+  const [dataError, setDataError] = useState<string | null>(null);
+  const isHydratingRef = useRef<boolean>(isSupabaseConfigured);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      isHydratingRef.current = false;
+      setIsDataLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadDashboardState = async () => {
+      try {
+        const remoteState = await fetchDashboardState();
+        if (cancelled) return;
+
+        if (remoteState) {
+          setClients(remoteState.clients ?? initialClients);
+          setProducts(remoteState.products ?? initialProducts);
+          setOrders(remoteState.orders ?? initialOrders);
+          setExpenses(remoteState.expenses ?? initialExpenses);
+          setLogs(remoteState.logs ?? initialLogs);
+          setDataError(null);
+        } else {
+          const fallbackState = {
+            clients: initialClients,
+            products: initialProducts,
+            orders: initialOrders,
+            expenses: initialExpenses,
+            logs: initialLogs,
+          };
+
+          setClients(fallbackState.clients);
+          setProducts(fallbackState.products);
+          setOrders(fallbackState.orders);
+          setExpenses(fallbackState.expenses);
+          setLogs(fallbackState.logs);
+
+          try {
+            await upsertDashboardState(fallbackState);
+            if (!cancelled) {
+              setDataError(null);
+            }
+          } catch (err) {
+            console.error('Failed to create initial dashboard state in Supabase', err);
+            if (!cancelled) {
+              setDataError(err instanceof Error ? err.message : 'Failed to save initial shared dashboard data.');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard state from Supabase', err);
+        if (!cancelled) {
+          setClients(initialClients);
+          setProducts(initialProducts);
+          setOrders(initialOrders);
+          setExpenses(initialExpenses);
+          setLogs(initialLogs);
+          setDataError(err instanceof Error ? err.message : 'Failed to load shared dashboard data.');
+        }
+      } finally {
+        if (!cancelled) {
+          isHydratingRef.current = false;
+          setIsDataLoaded(true);
+        }
+      }
+    };
+
+    loadDashboardState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !isDataLoaded || isHydratingRef.current) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      void upsertDashboardState({ clients, products, orders, expenses, logs })
+        .then(() => {
+          setDataError(prev => (prev && prev.toLowerCase().includes('save') ? null : prev));
+        })
+        .catch(err => {
+          console.error('Failed to persist dashboard state to Supabase', err);
+          setDataError(err instanceof Error ? err.message : 'Failed to save shared dashboard data.');
+        });
+    }, 800);
+
+    return () => clearTimeout(timeout);
+  }, [clients, products, orders, expenses, logs, isDataLoaded]);
 
   // Modal state
   const [isCreateOrderModalOpen, setCreateOrderModalOpen] = useState(false);
@@ -1154,14 +1251,28 @@ export const App: React.FC = () => {
   const [confirmationAction, setConfirmationAction] = useState<{ onConfirm: () => void, title: string, message: string } | null>(null);
 
   const addLog = useCallback((action: string, details: Record<string, any>) => {
-    const newLog: LogEntry = { id: `l${logs.length + 1}`, timestamp: new Date().toISOString(), user: currentUser, action, details };
-    setLogs(prev => [newLog, ...prev]);
-  }, [logs.length, setLogs, currentUser]);
+    setLogs(prevLogs => {
+      const newLog: LogEntry = {
+        id: `l${prevLogs.length + 1}`,
+        timestamp: new Date().toISOString(),
+        user: currentUser,
+        action,
+        details,
+      };
+      return [newLog, ...prevLogs];
+    });
+  }, [currentUser]);
 
   const showAlert = (title: string, message: string) => {
     setAlertModalContent({ title, message });
     setAlertModalOpen(true);
   };
+
+  useEffect(() => {
+    if (!dataError) return;
+    setAlertModalContent({ title: 'Sync Error', message: dataError });
+    setAlertModalOpen(true);
+  }, [dataError]);
 
   // Client and Order data aggregation
   const clientDataWithStats = useMemo(() => {
@@ -1651,6 +1762,19 @@ export const App: React.FC = () => {
         return <div>Page not found</div>;
     }
   };
+
+  if (!isDataLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-primary">
+        <div className="glass p-6 text-center max-w-md w-full">
+          <p className="text-xl font-semibold">Loading dashboard data…</p>
+          <p className="text-muted mt-2 text-sm">
+            {isSupabaseConfigured ? 'Syncing shared content from Supabase.' : 'Preparing local demo data.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <LoginPage onLoginSuccess={handleLogin} />;
