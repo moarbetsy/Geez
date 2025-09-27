@@ -6,7 +6,7 @@ import React, { useEffect, useState, useMemo, useRef, type ReactNode, useCallbac
 // FIX: The `Mask` icon does not exist in `lucide-react`. Replaced with `EyeOff` for the private mode toggle.
 import {
   ShoppingCart, Users, Box, Plus, Home, Search,
-  Package, ReceiptText, CheckCircle, History, LogOut, Settings, DollarSign, Trash2, TrendingUp, Calendar, Pencil, AreaChart, Calculator, AlertTriangle, Save, X, Download, ArrowUpDown, ArrowUp, ArrowDown, Upload, EyeOff
+  Package, ReceiptText, CheckCircle, History, LogOut, Settings, DollarSign, Trash2, TrendingUp, Calendar, Pencil, AreaChart, Calculator, AlertTriangle, Save, X, Download, ArrowUpDown, ArrowUp, ArrowDown, Upload, EyeOff, MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
@@ -17,6 +17,7 @@ import { initialClients, initialProducts, initialOrders, initialExpenses, initia
 import { calculateCost, exportToCsv } from './lib/utils';
 import { CreateOrderModal, CreateClientModal, CreateProductModal, AddStockModal, EditClientModal, EditOrderModal, EditProductModal, ClientOrdersModal, EditExpenseModal, LogDetailsModal, SessionTimeoutModal, ConfirmationModal, CreateExpenseModal, CalculatorModal, AlertModal } from './components/modals';
 import { NavItem, MobileNavItem, GlassCard, ActionCard } from './components/common';
+import { MessagesPage } from './components/MessagesPage';
 import LoginPage from './components/LoginPage';
 
 // FIX: Alias motion.div to a constant to help TypeScript correctly resolve the component's type.
@@ -649,7 +650,7 @@ const TransactionsPage: React.FC<{
         if (dateTo && transactionDate > new Date(dateTo)) return false;
         
         return true;
-    }, [transactions, searchQuery, dateFrom, dateTo]);
+    }), [transactions, searchQuery, dateFrom, dateTo]);
 
     const totalIncome = useMemo(() => filteredTransactions.filter(t => t.type === 'Income').reduce((sum, t) => sum + t.amount, 0), [filteredTransactions]);
     const totalExpenses = useMemo(() => filteredTransactions.filter(t => t.type === 'Expense').reduce((sum, t) => sum + t.amount, 0), [filteredTransactions]);
@@ -798,6 +799,12 @@ const SettingsPage: React.FC<{
                     title="Reports"
                     description="Visual breakdown of sales and expense data."
                     onClick={() => setPage('reports')}
+                />
+                <ActionCard
+                    icon={<MessageSquare size={24} />}
+                    title="Community Messages"
+                    description="Share quick updates stored in Supabase."
+                    onClick={() => setPage('messages')}
                 />
                 <ActionCard
                     icon={<Download size={24} />}
@@ -1636,6 +1643,8 @@ export const App: React.FC = () => {
         return <LogPage logs={logs} onLogClick={openLogDetailsModal} />;
       case 'settings':
          return <SettingsPage setPage={setPage} onExport={handleExport as any} onImport={handleImportData} onLogout={() => openDeleteConfirmation('logout')} onDeleteAllData={openDeleteAllDataConfirmation} />;
+      case 'messages':
+        return <MessagesPage currentUser={currentUser} />;
       case 'reports':
           return <ReportsPage orders={orders} products={products} expenses={expenses} clients={clients} isPrivateMode={isPrivateMode} />;
       default:

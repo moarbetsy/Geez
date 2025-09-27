@@ -1,7 +1,7 @@
 
 import type { ReactNode } from 'react';
 
-export type Page = 'dashboard' | 'orders' | 'clients' | 'products' | 'transactions' | 'log' | 'settings' | 'reports';
+export type Page = 'dashboard' | 'orders' | 'clients' | 'products' | 'transactions' | 'log' | 'settings' | 'reports' | 'messages';
 
 export interface Client {
   id: string;
