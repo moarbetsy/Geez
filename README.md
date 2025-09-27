@@ -1,94 +1,81 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
 
-# Run and deploy your AI Studio app
+# Liquid Glass: Your Dynamic Workspace
+---
 
-This project is a Vite + React dashboard generated from the Google AI Studio starter. It now includes a Supabase-backed "Community Messages" page and is ready to publish on GitHub Pages.
+Transform your static screen into a fluid, interactive, and intuitive environment.
 
-View your app in AI Studio: https://ai.studio/apps/drive/14sjHxmSf8e6r10ODiBHmreB_jlcedxWB
+## 🌊 What is Liquid Glass?
 
-## Environment variables
+Tired of rigid grids and endless folders? **Liquid Glass** reimagines your workspace as a free-form, tactile canvas. It’s a powerful tool for visual thinkers, creative professionals, and anyone seeking a more organic and inspiring way to manage information.
 
-Copy `.env.example` to `.env.local` and fill in the values before running locally:
+Whether you're brainstorming a new project, organizing research, or planning your day, Liquid Glass flows with your thoughts.
 
-```bash
-cp .env.example .env.local
-```
+---
 
-| Variable | Purpose |
-| --- | --- |
-| `GEMINI_API_KEY` | Optional. Only needed when calling Gemini locally. Never commit this value. |
-| `VITE_SUPABASE_URL` | Your Supabase project URL (e.g. `https://xyzcompany.supabase.co`). |
-| `VITE_SUPABASE_ANON_KEY` | The Supabase anon public key. Safe for browser use when RLS policies are in place. |
+## ✨ Key Features
 
-## Supabase setup
+* 💧 **Fluid & Dynamic Interface** — Experience a UI that responds with beautiful, liquid-like physics. Elements ripple, merge, and drift, making every interaction a delight.
+* 🧠 **Infinite Visual Canvas** — Arrange notes, images, to-do lists, and links on an endlessly pannable, zoomable canvas. See the big picture without limits.
+* 🎛️ **Intuitive Gestures** — Pinch to zoom, swipe to pan, tap-and-hold to unlock contextual tools. Designed to feel second-nature.
+* 🧩 **Interactive “Glass” Widgets** — Drop in live widgets like calendars, weather, or playlists directly onto your workspace.
+* 🎨 **Rich Customization** — Switch themes, adjust color palettes, and even tweak the *“viscosity”* of the physics engine for a personal touch.
+* ☁️ **Seamless Cross-Device Sync** — Stay in flow anywhere. Your entire canvas syncs in real time across desktop, tablet, and mobile.
 
-1. Create (or reuse) a Supabase project and note the project URL + anon key (Settings → API).
-2. In the SQL editor, create the `messages` table and policies:
+---
 
-```sql
-create table if not exists public.messages (
-  id bigserial primary key,
-  created_at timestamptz not null default now(),
-  content text not null check (char_length(content) between 1 and 500),
-  user_id uuid
-);
+## 🎯 Who is it for?
 
-alter table public.messages enable row level security;
+Liquid Glass is designed for:
 
--- Option A: public guestbook
-create policy "Public read messages" on public.messages for select to anon using (true);
-create policy "Public add messages" on public.messages for insert to anon with check (true);
-```
+* **Creative Professionals** — Mind-mapping, storyboarding, mood boarding.
+* **Students & Researchers** — Organize notes, sources, and complex ideas visually.
+* **Project Managers** — Build flowcharts, kanban boards, and timelines that adapt to your workflow.
+* **Anyone** — Seeking a joyful, less rigid way to manage daily tasks and personal projects.
 
-> ⚠️ Only use the anon key in the browser. Keep the service-role key private.
+---
 
-3. Create a `dashboard_state` table that stores the shared dataset seen by every visitor:
+## 🚀 Getting Started
 
-```sql
-create table if not exists public.dashboard_state (
-  id text primary key,
-  payload jsonb not null,
-  updated_at timestamptz not null default now()
-);
+1. **Clone the repo**
 
-alter table public.dashboard_state enable row level security;
+   ```bash
+   git clone https://github.com/yourusername/liquid-glass.git
+   cd liquid-glass
+   ```
+2. **Install dependencies**
 
-create policy "Dashboard read" on public.dashboard_state
-  for select to anon using (id = 'main');
+   ```bash
+   npm install
+   ```
+3. **Run locally**
 
-create policy "Dashboard insert" on public.dashboard_state
-  for insert to anon with check (id = 'main');
+   ```bash
+   npm run dev
+   ```
+4. **Build for production**
 
-create policy "Dashboard update" on public.dashboard_state
-  for update to anon using (id = 'main') with check (id = 'main');
-```
+   ```bash
+   npm run build
+   ```
 
-> The app uses a single row with `id = 'main'` to persist the latest clients, products, orders, expenses, and logs. Make sure the table exists before deploying so that everyone shares the same data.
+---
 
-## Local development
+## 🛠️ Tech Stack
 
-```bash
-npm install
-npm run dev
-```
+* **Frontend:** React, TailwindCSS, Framer Motion
+* **Backend:** Supabase (for sync and persistence)
+* **Physics & Canvas:** Custom WebGL / Canvas2D engine
 
-Open http://localhost:3000 and sign in. The "Community Messages" page reads/writes to Supabase once the environment variables are provided. Run `npm run build` to verify the production build.
+---
 
-## Deploy to GitHub Pages
+## 🤝 Feedback & Support
 
-1. Push the repository to GitHub under `moarbetsy/Geez` (or your fork).
-2. In repository settings add two GitHub Actions secrets:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-3. Ensure **Settings → Pages → Build and deployment** is set to "GitHub Actions".
-4. On the next push to `main`, the workflow at `.github/workflows/pages.yml` builds the site and deploys to `https://<username>.github.io/Geez/`.
+We’re dedicated to making Liquid Glass exceptional — and we value your input.
 
-For single-page routing support on GitHub Pages, the workflow copies `index.html` to `404.html` during deployment.
+* Open an [issue](https://github.com/yourusername/liquid-glass/issues) for bugs and feature requests
+* Join the discussion on [Discussions](https://github.com/yourusername/liquid-glass/discussions)
+* Or reach out directly at **[support@liquidglass.app](mailto:support@liquidglass.app)**
 
-## Security checklist
+---
 
-- Rotate any OAuth secrets that were shared publicly.
-- Keep Row Level Security enabled on every table exposed to the client.
-- Do not ship `GEMINI_API_KEY` or Supabase service keys to the browser—use server-side storage for secrets.
+Would you like me to also draft a **CONTRIBUTING.md** (with coding standards, pull request flow, etc.) so collaborators can jump in smoothly?
