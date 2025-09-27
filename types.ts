@@ -1,6 +1,5 @@
 
-
-
+import type { ReactNode } from 'react';
 
 export type Page = 'dashboard' | 'orders' | 'clients' | 'products' | 'transactions' | 'log' | 'settings' | 'reports';
 
@@ -75,7 +74,8 @@ export interface Metric {
     title: string;
     value: string;
     subtitle: string;
-    icon: React.ReactNode;
+    // FIX: Changed React.ReactNode to the imported ReactNode type.
+    icon: ReactNode;
     color: string;
 }
 

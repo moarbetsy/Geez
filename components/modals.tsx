@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, type ReactNode, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Trash2, AlertTriangle, Info, ArrowLeft } from 'lucide-react';
@@ -99,8 +100,10 @@ const ModalWrapper: React.FC<{
   );
 };
 
-const FormRow = ({ children, className }: { children: ReactNode, className?: string }) => <div className={`flex flex-col gap-2 ${className || ''}`}>{children}</div>;
-const Label = ({ children, htmlFor }: { children: ReactNode, htmlFor?: string }) => <label htmlFor={htmlFor} className="text-sm font-medium text-muted cursor-pointer">{children}</label>;
+// FIX: Made children prop optional to resolve errors where the component is used without children.
+const FormRow = ({ children, className }: { children?: ReactNode, className?: string }) => <div className={`flex flex-col gap-2 ${className || ''}`}>{children}</div>;
+// FIX: Made children prop optional to resolve errors where the component is used without children.
+const Label = ({ children, htmlFor }: { children?: ReactNode, htmlFor?: string }) => <label htmlFor={htmlFor} className="text-sm font-medium text-muted cursor-pointer">{children}</label>;
 
 const Input = React.forwardRef<
   HTMLInputElement,
@@ -131,9 +134,12 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttribu
 const Checkbox = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>((props, ref) => (
     <input ref={ref} type="checkbox" {...props} className="w-5 h-5 rounded-md bg-white/10 border-white/20 text-indigo-500 focus:ring-indigo-500/50" />
 ));
-const FormActions = ({ children }: { children: ReactNode }) => <div className="flex justify-end items-center gap-4 mt-8 pt-6 border-t border-white/10">{children}</div>;
-const CancelButton = ({ onClick }: { onClick: () => void }) => <button type="button" onClick={onClick} className="px-4 py-2 text-sm font-medium text-muted hover:text-primary">Cancel</button>;
-const DeleteButton = ({ onClick }: { onClick: () => void }) => <button type="button" onClick={onClick} className="gloss-btn !bg-purple-600/80 hover:!bg-purple-600 !border-purple-600/20 hover:!shadow-purple-600/25"><Trash2 size={16} /> Delete</button>;
+// FIX: Made children prop optional to resolve errors where the component is used without children.
+const FormActions = ({ children }: { children?: ReactNode }) => <div className="flex justify-end items-center gap-4 mt-8 pt-6 border-t border-white/10">{children}</div>;
+// FIX: Made children prop optional to resolve errors where the component is used without children.
+const CancelButton = ({ onClick, children }: { onClick: () => void, children?: ReactNode }) => <button type="button" onClick={onClick} className="px-4 py-2 text-sm font-medium text-muted hover:text-primary">{children || 'Cancel'}</button>;
+// FIX: Made children prop optional and provided a default value to resolve errors where the component is used without children.
+const DeleteButton = ({ onClick, children }: { onClick: () => void, children?: ReactNode }) => <button type="button" onClick={onClick} className="gloss-btn !bg-purple-600/80 hover:!bg-purple-600 !border-purple-600/20 hover:!shadow-purple-600/25">{children || <><Trash2 size={16} /> Delete</>}</button>;
 
 
 // --- App Modals ---
@@ -1384,7 +1390,7 @@ export const ConfirmationModal: React.FC<{
         <p className="mt-4 text-primary">{message}</p>
       </div>
       <div className="mt-6 flex justify-center gap-4">
-        <button type="button" onClick={onClose} className="px-6 py-2 text-sm font-semibold text-muted hover:text-primary">Cancel</button>
+        <CancelButton onClick={onClose} />
         <button type="button" onClick={onConfirm} className="gloss-btn gloss-btn-danger">Confirm</button>
       </div>
     </ModalWrapper>
